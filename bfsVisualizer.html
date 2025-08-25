@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BFS Visualizer</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+    #graphCanvas { border: 1px solid black; margin-top: 20px; }
+    input, button { margin: 5px; padding: 8px; }
+    .output { margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>Breadth-First Search Visualizer</h2>
+
+  <input type="file" id="jsonFile">
+  <button onclick="loadJSON()">Load BFS Result</button>
+
+  <canvas id="graphCanvas" width="600" height="400"></canvas>
+  <div class="output" id="output"></div>
+
+  <script>
+    function loadJSON() {
+      const fileInput = document.getElementById("jsonFile").files[0];
+      if (!fileInput) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = JSON.parse(e.target.result);
+        const nodes = Object.keys(data.graph);
+        const edges = [];
+        for (let u in data.graph) {
+          for (let v of data.graph[u]) {
+            if (!edges.includes(u + "-" + v) && !edges.includes(v + "-" + u)) {
+              edges.push(u + "-" + v);
+            }
+          }
+        }
+        drawGraph(nodes, edges, data.levels);
+        document.getElementById("output").innerHTML =
+          "Traversal: " + data.traversal.join(" → ") + "<br>" +
+          Object.entries(data.levels).map(([n, l]) => `${n}: Level ${l}`).join("<br>");
+      };
+      reader.readAsText(fileInput);
+    }
+
+    function drawGraph(nodes, edges, levels) {
+      const canvas = document.getElementById("graphCanvas");
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = 150;
+      const angleStep = (2 * Math.PI) / nodes.length;
+      let positions = {};
+      nodes.forEach((n, i) => {
+        let angle = i * angleStep;
+        positions[n] = {
+          x: centerX + radius * Math.cos(angle),
+          y: centerY + radius * Math.sin(angle)
+        };
+      });
+      ctx.strokeStyle = "black";
+      for (let e of edges) {
+        let [u, v] = e.split("-");
+        let p1 = positions[u.trim()];
+        let p2 = positions[v.trim()];
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      }
+      for (let n of nodes) {
+        let p = positions[n];
+        let lvl = levels[n];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 20, 0, 2 * Math.PI);
+        ctx.fillStyle = lvl === -1 ? "lightgray" : `hsl(${lvl * 60},70%,60%)`;
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "black";
+        ctx.fillText(n, p.x - 5, p.y + 5);
+      }
+    }
+  </script>
+</body>
+</html>
